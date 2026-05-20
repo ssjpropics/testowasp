@@ -1,0 +1,35 @@
+name: OWASP ZAP DAST Scan
+ 
+on:
+  push:
+    branches: [main]       # Auto-trigger on push to main
+  pull_request:
+    branches: [main]       # Trigger on PRs — blocks merge if High found
+  workflow_dispatch:       # Manual trigger via Actions tab
+ 
+permissions:
+  contents: read           # Needed to checkout code
+  issues: write            # Needed for ZAP to open GitHub Issue with findings
+ 
+jobs:
+  zap_scan:
+    runs-on: ubuntu-latest # Fresh Ubuntu VM — ZAP pulled via Docker automatically
+    name: Run DAST Scan
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Avoids Node 20 deprecation warning
+ 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+ 
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'https://juice-shop.herokuapp.com'
+          cmd_options: '-I'  # Fail build only on High/Critical — ignore Medium and below
+ 
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-scan-report
+          path: report_html.html  # Default ZAP output filename — do not change
